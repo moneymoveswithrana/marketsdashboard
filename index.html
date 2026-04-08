@@ -10,7 +10,674 @@
   :root {
     --bg:#0a0c10; --bg2:#10141c; --bg3:#161c28;
     --border:#1e2535; --border2:#2a3448;
+    --text:#e8edf5; --muted:#5a6a8a;<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketLens Dashboard</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap');
+  :root {
+    --bg:#0a0c10; --bg2:#10141c; --bg3:#161c28;
+    --border:#1e2535; --border2:#2a3448;
     --text:#e8edf5; --muted:#5a6a8a;
+    --accent:#00d4ff; --green:#00e676; --red:#ff3d5a; --gold:#ffd166;
+    --pill-bg:#1a2236;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* SETUP */
+  #setup-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .setup-card{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:40px;max-width:560px;width:100%}
+  .setup-logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:6px}
+  .setup-logo span{color:var(--accent)}
+  .setup-sub{color:var(--muted);font-size:12px;margin-bottom:28px;line-height:1.7}
+  .setup-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block}
+  .setup-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:12px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;margin-bottom:16px;transition:border-color .15s}
+  .setup-input:focus{border-color:var(--accent)}
+  .setup-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:13px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .setup-btn:hover{opacity:.85}
+  .setup-note{margin-top:18px;font-size:11px;color:var(--muted);line-height:1.7;text-align:center}
+  .setup-note a{color:var(--accent);text-decoration:none}
+  .setup-warn{background:#1a1200;border:1px solid #3a2800;border-radius:6px;padding:12px 14px;margin-top:14px;font-size:11px;color:var(--gold);line-height:1.7}
+  .setup-error{color:var(--red);font-size:11px;margin-bottom:10px;display:none}
+
+  /* HEADER */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:15px 28px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px}
+  .logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+  .logo span{color:var(--accent)}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .last-updated{font-size:11px;color:var(--muted)}
+  .btn{background:var(--pill-bg);border:1px solid var(--border2);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 13px;border-radius:4px;cursor:pointer;transition:all .15s}
+  .btn:hover{background:var(--border2)}
+  .btn.danger{color:var(--red)}
+  .btn.spinning{opacity:.4;pointer-events:none}
+
+  /* QUOTA */
+  .quota-meter{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+  .quota-track{width:70px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+  .quota-fill{height:100%;border-radius:2px;background:var(--green);transition:width .3s,background .3s}
+
+  /* WARNINGS */
+  #quota-warning{display:none;background:#1a1200;border-bottom:1px solid #3a2800;padding:8px 28px;font-size:11px;color:var(--gold)}
+  #quota-warning a{color:var(--accent);text-decoration:none;margin-left:10px}
+
+  /* CACHE BAR */
+  .cache-bar{padding:7px 28px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .cd{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
+
+  /* TABS */
+  .tabs{display:flex;padding:0 28px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:11px 17px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;text-transform:uppercase;letter-spacing:1px}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  /* TABLE */
+  .main{padding:18px 28px}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:1200px}
+  thead th{background:var(--bg2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:9px 11px;text-align:right;border-bottom:1px solid var(--border);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none}
+  thead th:first-child{text-align:left;min-width:170px}
+  thead th:nth-child(2){text-align:left;min-width:80px}
+  thead th:hover{color:var(--text)}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+  tbody tr:hover{background:var(--bg2)}
+  tbody tr.selected{background:#0d1e2e}
+  tbody tr:last-child{border-bottom:none}
+  td{padding:9px 11px;text-align:right;white-space:nowrap}
+  td:first-child{text-align:left}
+  td:nth-child(2){text-align:left}
+  .tn{font-weight:500;font-size:12px}
+  .ts{font-size:10px;color:var(--muted);margin-top:1px}
+  .tag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:500}
+  .tag-commodity{background:#2a1f08;color:#ffd166}
+  .tag-index{background:#0a1f2e;color:#00d4ff}
+  .tag-etf{background:#0f1f10;color:#00e676}
+  .pos{color:var(--green)} .neg{color:var(--red)} .neu{color:var(--muted)}
+  .sk{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:3px;display:inline-block;height:11px}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* CHART */
+  .chart-panel{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .chart-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
+  .chart-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+  .chart-sub{font-size:10px;color:var(--muted);margin-top:2px}
+  .range-btns{display:flex;gap:4px}
+  .range-btn{background:var(--pill-bg);border:1px solid var(--border2);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer;transition:all .15s}
+  .range-btn:hover{color:var(--text)}
+  .range-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+  #chart-container{height:400px}
+  .chart-empty{display:flex;align-items:center;justify-content:center;height:400px;color:var(--muted);font-size:13px}
+
+  /* STATUS */
+  .status-bar{display:flex;align-items:center;gap:18px;padding:9px 28px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);flex-wrap:wrap}
+  .sdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;display:inline-block;margin-right:5px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  @media(max-width:768px){
+    .header,.main,.status-bar,.cache-bar{padding-left:14px;padding-right:14px}
+    .tabs{padding:0 14px}
+    #chart-container{height:300px}
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">MARKET<span>LENS</span></div>
+    <p class="setup-sub">
+      Enter your free Alpha Vantage API key below. Stored only in your browser — never sent anywhere except directly to alphavantage.co.
+    </p>
+    <label class="setup-label">Alpha Vantage API Key</label>
+    <input class="setup-input" id="api-key-input" type="text" placeholder="Paste your key here" autocomplete="off" spellcheck="false">
+    <div class="setup-error" id="setup-error">Key too short — paste the full key from Alpha Vantage.</div>
+    <button class="setup-btn" onclick="saveKey()">Launch Dashboard →</button>
+    <div class="setup-note">
+      No key yet? <a href="https://www.alphavantage.co/support/#api-key" target="_blank">Get one free in 30 seconds →</a>
+    </div>
+    <div class="setup-warn">
+      <strong>Free tier: 25 API requests / day, max 5/minute.</strong><br>
+      This dashboard makes 1 request per ticker (21 total). All data is cached in your browser for 24h — subsequent loads and refreshes cost zero API calls.
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none">
+
+  <div id="quota-warning">
+    ⚠ Daily API quota reached (25/25). Showing cached data only. Resets at midnight UTC (5:30 AM IST).
+    <a href="https://www.alphavantage.co/premium/" target="_blank">Upgrade →</a>
+  </div>
+
+  <header class="header">
+    <div class="logo">MARKET<span>LENS</span></div>
+    <div class="header-right">
+      <div class="quota-meter">
+        <span id="quota-text" style="min-width:40px">0/25</span>
+        <div class="quota-track"><div class="quota-fill" id="quota-fill" style="width:0%"></div></div>
+        <span>API calls today</span>
+      </div>
+      <span class="last-updated" id="update-time">—</span>
+      <button class="btn" id="refresh-btn" onclick="loadAll(false)">↻ Refresh</button>
+      <button class="btn" id="force-btn" onclick="confirmForce()">⚡ Force fetch</button>
+      <button class="btn danger" onclick="changeKey()">⚙ API key</button>
+    </div>
+  </header>
+
+  <div class="cache-bar">
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <span><span class="cd" style="background:var(--green)"></span>Cached (today)</span>
+      <span><span class="cd" style="background:var(--gold)"></span>Fetching…</span>
+      <span><span class="cd" style="background:var(--red)"></span>Error / Rate-limited (will retry)</span>
+    </div>
+    <span id="cache-summary">—</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('all',this)">All Markets</div>
+    <div class="tab" onclick="switchTab('commodity',this)">Commodities</div>
+    <div class="tab" onclick="switchTab('index',this)">Indices</div>
+    <div class="tab" onclick="switchTab('etf',this)">Sector ETFs</div>
+  </div>
+
+  <div class="main">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable('name')">Instrument ↕</th>
+            <th onclick="sortTable('type')">Type</th>
+            <th onclick="sortTable('price')">Price ↕</th>
+            <th onclick="sortTable('w52hi')">52W High</th>
+            <th onclick="sortTable('w52lo')">52W Low</th>
+            <th onclick="sortTable('ret1m')">1M %</th>
+            <th onclick="sortTable('ret3m')">3M %</th>
+            <th onclick="sortTable('ret6m')">6M %</th>
+            <th onclick="sortTable('ret1y')">1Y %</th>
+            <th onclick="sortTable('cagr3y')">3Y CAGR%</th>
+            <th onclick="sortTable('cagr5y')">5Y CAGR%</th>
+            <th onclick="sortTable('cagr10y')">10Y CAGR%</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title" id="chart-title">Click any row to view chart</div>
+          <div class="chart-sub" id="chart-sub">Monthly adjusted close</div>
+        </div>
+        <div class="range-btns">
+          <button class="range-btn" onclick="setRange('1M',this)">1M</button>
+          <button class="range-btn" onclick="setRange('3M',this)">3M</button>
+          <button class="range-btn" onclick="setRange('6M',this)">6M</button>
+          <button class="range-btn" onclick="setRange('1Y',this)">1Y</button>
+          <button class="range-btn" onclick="setRange('5Y',this)">5Y</button>
+          <button class="range-btn active" onclick="setRange('MAX',this)">MAX</button>
+        </div>
+      </div>
+      <div id="chart-container">
+        <div class="chart-empty">Select a row above to view the price chart</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span><span class="sdot"></span>Alpha Vantage (NASDAQ-licensed, end-of-day data)</span>
+    <span>Data cached 24h in browser — zero cost on repeat loads</span>
+    <span>Charts: TradingView Lightweight Charts</span>
+  </div>
+
+</div>
+
+<script>
+// ── TICKER CONFIG ──
+const TICKERS = [
+  {symbol:'SLV',  name:'Silver',            sub:'ETF proxy for SI (Silver Futures)',   type:'commodity'},
+  {symbol:'CPER', name:'Copper',            sub:'ETF proxy for HG (Copper Futures)',   type:'commodity'},
+  {symbol:'USO',  name:'Crude Oil WTI',     sub:'ETF proxy for CL (Oil Futures)',      type:'commodity'},
+  {symbol:'GLD',  name:'Gold / XAU',        sub:'ETF proxy for XAU/USD',              type:'commodity'},
+  {symbol:'IWM',  name:'Russell 2000',      sub:'ETF proxy for ^RUT',                 type:'index'},
+  {symbol:'QQQ',  name:'NASDAQ-100',        sub:'ETF proxy for ^IXIC',                type:'index'},
+  {symbol:'SPY',  name:'S&P 500',           sub:'ETF proxy for ^GSPC',                type:'index'},
+  {symbol:'INDY', name:'NIFTY 50',          sub:'ETF proxy for ^NSEI (India)',         type:'index'},
+  {symbol:'SCIF', name:'NIFTY Smallcap',    sub:'ETF proxy (India Small Cap)',         type:'index'},
+  {symbol:'INDA', name:'NIFTY Midcap/All',  sub:'ETF proxy (India All Cap)',           type:'index'},
+  {symbol:'XLK',  name:'Technology',        sub:'SPDR XLK',                            type:'etf'},
+  {symbol:'XLF',  name:'Financials',        sub:'SPDR XLF',                            type:'etf'},
+  {symbol:'XLV',  name:'Health Care',       sub:'SPDR XLV',                            type:'etf'},
+  {symbol:'XLE',  name:'Energy',            sub:'SPDR XLE',                            type:'etf'},
+  {symbol:'XLY',  name:'Consumer Discr.',   sub:'SPDR XLY',                            type:'etf'},
+  {symbol:'XLI',  name:'Industrials',       sub:'SPDR XLI',                            type:'etf'},
+  {symbol:'XLB',  name:'Materials',         sub:'SPDR XLB',                            type:'etf'},
+  {symbol:'XLRE', name:'Real Estate',       sub:'SPDR XLRE',                           type:'etf'},
+  {symbol:'XLU',  name:'Utilities',         sub:'SPDR XLU',                            type:'etf'},
+  {symbol:'XLP',  name:'Consumer Staples',  sub:'SPDR XLP',                            type:'etf'},
+  {symbol:'XLC',  name:'Communication',     sub:'SPDR XLC',                            type:'etf'},
+];
+
+// ── CONSTANTS ──
+const CACHE_PFX = 'ml3_data_';   // bumped prefix so old stale cache is ignored
+const QUOTA_KEY = 'ml3_quota_';
+const TODAY = new Date().toISOString().slice(0,10);
+const COL_COUNT = 12; // total columns in table (used for colspan)
+
+// ── STATE ──
+let API_KEY = '';
+let tableData = {};
+let currentTab = 'all';
+let sortKey = null, sortAsc = false;
+let chartInstance = null;
+let currentSym = null, currentRange = 'MAX';
+let quotaUsed = 0;
+
+// ── QUOTA ──
+function loadQuota(){
+  try{ quotaUsed = parseInt(localStorage.getItem(QUOTA_KEY+TODAY)||'0')||0; }catch{ quotaUsed=0; }
+  renderQuota();
+}
+function bumpQuota(){
+  quotaUsed++;
+  try{ localStorage.setItem(QUOTA_KEY+TODAY, quotaUsed); }catch{}
+  renderQuota();
+  if(quotaUsed>=25) document.getElementById('quota-warning').style.display='block';
+}
+function renderQuota(){
+  const pct = Math.min(100,(quotaUsed/25)*100);
+  document.getElementById('quota-text').textContent = quotaUsed+'/25';
+  const f = document.getElementById('quota-fill');
+  f.style.width = pct+'%';
+  f.style.background = pct>80?'var(--red)':pct>50?'var(--gold)':'var(--green)';
+}
+
+// ── CACHE ──
+function getCached(sym){
+  try{
+    const raw = localStorage.getItem(CACHE_PFX+sym);
+    if(!raw) return null;
+    const o = JSON.parse(raw);
+    if(o.date!==TODAY) return null;
+    return o.data;
+  }catch{ return null; }
+}
+function setCache(sym,data){
+  try{ localStorage.setItem(CACHE_PFX+sym, JSON.stringify({date:TODAY, data})); }catch{}
+}
+function clearCache(){
+  try{
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith(CACHE_PFX)) localStorage.removeItem(k); });
+  }catch{}
+}
+
+// ── API ──
+const AV = 'https://www.alphavantage.co/query';
+
+async function avGet(params){
+  const url = AV+'?'+new URLSearchParams({...params, apikey:API_KEY});
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const d = await r.json();
+  // "Note" = per-minute rate limit exceeded; "Information" = daily quota exceeded
+  if(d['Information']) throw new Error('DAILY_LIMIT');
+  if(d['Note']) throw new Error('RATE_LIMIT');
+  return d;
+}
+
+// Fetch with automatic retry on per-minute rate limit (waits 60s then retries once)
+async function fetchMonthly(sym){
+  bumpQuota();
+  let d;
+  try {
+    d = await avGet({function:'TIME_SERIES_MONTHLY_ADJUSTED', symbol:sym});
+  } catch(e) {
+    if(e.message === 'RATE_LIMIT'){
+      // Per-minute limit hit — wait 65s and retry (don't bump quota again)
+      await sleep(65000);
+      d = await avGet({function:'TIME_SERIES_MONTHLY_ADJUSTED', symbol:sym});
+    } else {
+      throw e;
+    }
+  }
+  const series = d['Monthly Adjusted Time Series'];
+  if(!series || !Object.keys(series).length) return null;
+  return Object.entries(series)
+    .map(([date,v])=>({ date, close: parseFloat(v['5. adjusted close']) }))
+    .filter(x => x.close && !isNaN(x.close) && x.close > 0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// ── CALCULATIONS ──
+
+// 52-week high/low: look at all monthly closes in the trailing 12 months
+// Using last 13 entries gives us ~12 months of range (current month + 12 prior)
+function w52Range(monthly){
+  if(!monthly || monthly.length < 2) return {hi:null, lo:null};
+  // Find entries from 12 months ago to now
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear()-1);
+  const cutoffStr = cutoff.toISOString().slice(0,7); // YYYY-MM
+  const inRange = monthly.filter(m => m.date.slice(0,7) >= cutoffStr);
+  if(!inRange.length) return {hi:null, lo:null};
+  const prices = inRange.map(m=>m.close);
+  return { hi: Math.max(...prices), lo: Math.min(...prices) };
+}
+
+// 1M%: compare latest close to the close from exactly 1 month ago
+// Use the second-to-last monthly entry as "1 month ago" (most reliable on monthly data)
+function ret1m(monthly){
+  if(!monthly || monthly.length < 2) return null;
+  const latest = monthly[monthly.length-1].close;
+  const oneMonthAgo = monthly[monthly.length-2].close; // previous monthly close = ~1 month ago
+  if(!oneMonthAgo || oneMonthAgo <= 0) return null;
+  return ((latest - oneMonthAgo) / oneMonthAgo) * 100;
+}
+
+// For 3M, 6M, 1Y: find the monthly entry closest to N months ago
+function retNmonths(monthly, months){
+  if(!monthly || monthly.length < 2) return null;
+  const latest = monthly[monthly.length-1].close;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const cutoffStr = cutoff.toISOString().slice(0,7);
+  // Get entries on or before the cutoff month
+  const past = monthly.filter(m => m.date.slice(0,7) <= cutoffStr);
+  if(!past.length) return null;
+  const startClose = past[past.length-1].close;
+  if(!startClose || startClose <= 0) return null;
+  return ((latest - startClose) / startClose) * 100;
+}
+
+// CAGR: annualised return over N years
+function cagrPct(monthly, years){
+  if(!monthly || monthly.length < 2) return null;
+  const latest = monthly[monthly.length-1].close;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - years);
+  const cutoffStr = cutoff.toISOString().slice(0,7);
+  const past = monthly.filter(m => m.date.slice(0,7) <= cutoffStr);
+  if(!past.length) return null;
+  const startClose = past[past.length-1].close;
+  if(!startClose || startClose <= 0) return null;
+  // Actual elapsed years (more precise than assuming exactly N years)
+  const startDate = new Date(past[past.length-1].date);
+  const endDate = new Date(monthly[monthly.length-1].date);
+  const actualYears = (endDate - startDate) / (365.25 * 24 * 3600 * 1000);
+  if(actualYears < 0.5) return null;
+  return (Math.pow(latest / startClose, 1/actualYears) - 1) * 100;
+}
+
+// ── LOAD ALL ──
+async function loadAll(force=false){
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning'); btn.textContent='↻ Loading…';
+  if(force) clearCache();
+
+  TICKERS.forEach(t=>{
+    if(!tableData[t.symbol] || force || tableData[t.symbol].status==='error' || tableData[t.symbol].status==='quota')
+      tableData[t.symbol] = {...t, status:'loading'};
+  });
+  renderTable();
+
+  // Process sequentially with a 13s pause every 5 tickers
+  // AV free = 5 requests/min → 1 per 12s to be safe
+  for(let i=0; i<TICKERS.length; i++){
+    await loadTicker(TICKERS[i]);
+    renderTable();
+    renderCacheSummary();
+    if(i < TICKERS.length-1) await sleep(13000); // 13s between every call
+  }
+
+  document.getElementById('update-time').textContent = 'Updated '+new Date().toLocaleTimeString();
+  btn.classList.remove('spinning'); btn.textContent='↻ Refresh';
+}
+
+async function loadTicker(t){
+  const {symbol} = t;
+
+  // Serve from cache if available and fresh
+  const cached = getCached(symbol);
+  if(cached){
+    tableData[symbol] = {...t, ...cached, status:'cached'};
+    return;
+  }
+
+  // Hard daily quota check
+  if(quotaUsed >= 25){
+    tableData[symbol] = {...t, status:'quota'};
+    return;
+  }
+
+  tableData[symbol] = {...t, status:'fetching'};
+  renderTable();
+
+  try{
+    const monthly = await fetchMonthly(symbol);
+    if(!monthly || !monthly.length) throw new Error('No data returned from API');
+
+    const {hi,lo} = w52Range(monthly);
+    const result = {
+      price:   monthly[monthly.length-1].close,
+      currency:'USD',
+      w52hi:   hi,
+      w52lo:   lo,
+      ret1m:   ret1m(monthly),
+      ret3m:   retNmonths(monthly, 3),
+      ret6m:   retNmonths(monthly, 6),
+      ret1y:   retNmonths(monthly, 12),
+      cagr3y:  cagrPct(monthly, 3),
+      cagr5y:  cagrPct(monthly, 5),
+      cagr10y: cagrPct(monthly, 10),
+      monthlyData: monthly,
+    };
+    setCache(symbol, result);
+    tableData[symbol] = {...t, ...result, status:'cached'};
+
+  } catch(e){
+    if(e.message === 'DAILY_LIMIT'){
+      tableData[symbol] = {...t, status:'quota'};
+      document.getElementById('quota-warning').style.display='block';
+    } else {
+      tableData[symbol] = {...t, status:'error', errorMsg: e.message};
+    }
+  }
+}
+
+// ── RENDER TABLE ──
+function fPct(v){
+  if(v==null||isNaN(v)) return '<span class="neu">—</span>';
+  const cls = v>0?'pos':v<0?'neg':'neu';
+  return `<span class="${cls}">${v>0?'+':''}${v.toFixed(2)}%</span>`;
+}
+function fNum(v, d=2){
+  if(v==null||isNaN(v)) return '<span class="neu">—</span>';
+  return v.toLocaleString('en-US',{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+function tag(type){ return `<span class="tag tag-${type}">${type.toUpperCase()}</span>`; }
+const SKELs = n => `<td><span class="sk" style="width:50px"></span></td>`.repeat(n);
+
+function renderTable(){
+  let rows = Object.values(tableData);
+  if(currentTab!=='all') rows = rows.filter(r=>r.type===currentTab);
+  if(sortKey){
+    rows.sort((a,b)=>{
+      let va=a[sortKey], vb=b[sortKey];
+      if(va==null) va = sortAsc?Infinity:-Infinity;
+      if(vb==null) vb = sortAsc?Infinity:-Infinity;
+      if(typeof va==='string') return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+      return sortAsc?va-vb:vb-va;
+    });
+  }
+
+  const DATA_COLS = COL_COUNT - 2; // subtract name + type columns
+  const tb = document.getElementById('table-body');
+
+  tb.innerHTML = rows.map(r=>{
+    const sel = r.symbol===currentSym ? 'selected' : '';
+    switch(r.status){
+      case 'loading':
+      case 'fetching':
+        return `<tr class="${sel}">
+          <td><div class="tn">${r.name} <span style="color:var(--gold)">◌</span></div><div class="ts">${r.sub}</div></td>
+          <td>${tag(r.type)}</td>
+          ${SKELs(DATA_COLS)}
+        </tr>`;
+      case 'quota':
+        return `<tr class="${sel}">
+          <td><div class="tn">${r.name}</div><div class="ts">${r.sub}</div></td>
+          <td>${tag(r.type)}</td>
+          <td colspan="${DATA_COLS}" style="color:var(--gold);font-size:11px">Daily quota reached — will load tomorrow</td>
+        </tr>`;
+      case 'error':
+        return `<tr class="${sel}">
+          <td><div class="tn">${r.name}</div><div class="ts">${r.sub}</div></td>
+          <td>${tag(r.type)}</td>
+          <td colspan="${DATA_COLS}" style="color:var(--red);font-size:11px">Error: ${r.errorMsg||'failed'}</td>
+        </tr>`;
+      default: {
+        const ci = '<span style="font-size:9px;color:var(--green);margin-left:4px">●</span>';
+        return `<tr onclick="selectRow('${r.symbol}','${r.name}')" class="${sel}">
+          <td><div class="tn">${r.name}${ci}</div><div class="ts">${r.sub}</div></td>
+          <td>${tag(r.type)}</td>
+          <td>${fNum(r.price)} <span style="font-size:9px;color:var(--muted)">${r.currency||''}</span></td>
+          <td>${fNum(r.w52hi)}</td>
+          <td>${fNum(r.w52lo)}</td>
+          <td>${fPct(r.ret1m)}</td>
+          <td>${fPct(r.ret3m)}</td>
+          <td>${fPct(r.ret6m)}</td>
+          <td>${fPct(r.ret1y)}</td>
+          <td>${fPct(r.cagr3y)}</td>
+          <td>${fPct(r.cagr5y)}</td>
+          <td>${fPct(r.cagr10y)}</td>
+        </tr>`;
+      }
+    }
+  }).join('') || `<tr><td colspan="${COL_COUNT}" style="text-align:center;padding:30px;color:var(--muted)">No data</td></tr>`;
+}
+
+function renderCacheSummary(){
+  const all = Object.values(tableData);
+  const n = s => all.filter(r=>r.status===s).length;
+  document.getElementById('cache-summary').textContent =
+    `${n('cached')} cached · ${n('fetching')+n('loading')} loading · ${n('error')+n('quota')} failed · ${quotaUsed}/25 API calls today`;
+}
+
+// ── SORT ──
+function sortTable(k){
+  if(sortKey===k) sortAsc=!sortAsc; else { sortKey=k; sortAsc=false; }
+  renderTable();
+}
+
+// ── TABS ──
+function switchTab(tab,el){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+// ── CHART ──
+function selectRow(sym,name){
+  currentSym=sym;
+  document.getElementById('chart-title').textContent=name+' ('+sym+')';
+  document.getElementById('chart-sub').textContent='Monthly adjusted close · '+currentRange;
+  renderChart();
+  renderTable();
+}
+
+function renderChart(){
+  const d = tableData[currentSym];
+  const container = document.getElementById('chart-container');
+  if(!d||!d.monthlyData||!d.monthlyData.length){
+    container.innerHTML='<div class="chart-empty">No chart data available</div>';
+    return;
+  }
+  let monthly = [...d.monthlyData];
+  const cutoffMonths = {'1M':1,'3M':3,'6M':6,'1Y':12,'5Y':60,'MAX':9999};
+  const months = cutoffMonths[currentRange]||9999;
+  if(months<9999){
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-months);
+    const cs = cutoff.toISOString().slice(0,7);
+    monthly = monthly.filter(m=>m.date>=cs);
+  }
+  if(chartInstance){ chartInstance.remove(); chartInstance=null; }
+  container.innerHTML='';
+  chartInstance = LightweightCharts.createChart(container,{
+    width:container.clientWidth, height:400,
+    layout:{background:{color:'#10141c'},textColor:'#5a6a8a',fontFamily:'JetBrains Mono,monospace',fontSize:11},
+    grid:{vertLines:{color:'#1e2535'},horzLines:{color:'#1e2535'}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+    rightPriceScale:{borderColor:'#1e2535'},
+    timeScale:{borderColor:'#1e2535'},
+  });
+  const area = chartInstance.addAreaSeries({
+    lineColor:'#00d4ff', topColor:'rgba(0,212,255,0.18)', bottomColor:'rgba(0,212,255,0.01)',
+    lineWidth:2, priceLineVisible:true, lastValueVisible:true,
+  });
+  area.setData(monthly.map(m=>({time:m.date, value:m.close})));
+  chartInstance.timeScale().fitContent();
+  new ResizeObserver(()=>{ if(chartInstance) chartInstance.applyOptions({width:container.clientWidth}); }).observe(container);
+}
+
+function setRange(r,el){
+  currentRange=r;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('chart-sub').textContent='Monthly adjusted close · '+r;
+  if(currentSym) renderChart();
+}
+
+// ── KEY MANAGEMENT ──
+function saveKey(){
+  const v = document.getElementById('api-key-input').value.trim();
+  if(v.length<8){ document.getElementById('setup-error').style.display='block'; return; }
+  API_KEY=v;
+  try{ localStorage.setItem('ml3_apikey',API_KEY); }catch{}
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  loadQuota(); loadAll(false);
+}
+
+function changeKey(){
+  if(!confirm('Change API key and return to setup screen?')) return;
+  try{ localStorage.removeItem('ml3_apikey'); }catch{}
+  document.getElementById('setup-screen').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+}
+
+function confirmForce(){
+  if(!confirm('Force re-fetch clears the cache and uses up to 21 of your 25 daily API calls. Continue?')) return;
+  loadAll(true);
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('api-key-input')?.addEventListener('keydown',e=>{ if(e.key==='Enter') saveKey(); });
+  try{
+    const saved = localStorage.getItem('ml3_apikey');
+    if(saved&&saved.length>=8){
+      API_KEY=saved;
+      document.getElementById('setup-screen').style.display='none';
+      document.getElementById('dashboard').style.display='block';
+      loadQuota(); loadAll(false); return;
+    }
+  }catch{}
+  document.getElementById('setup-screen').style.display='flex';
+});
+</script>
+</body>
+</html>
+
     --accent:#00d4ff; --green:#00e676; --red:#ff3d5a; --gold:#ffd166;
     --pill-bg:#1a2236;
   }
